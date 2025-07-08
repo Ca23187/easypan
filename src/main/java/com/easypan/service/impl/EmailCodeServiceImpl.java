@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class EmailCodeServiceImpl implements EmailCodeService {
@@ -67,6 +68,16 @@ public class EmailCodeServiceImpl implements EmailCodeService {
         emailCode.setStatus(Constants.ZERO);
         emailCode.setCreateTime(new Date());
         emailCodeRepository.save(emailCode);
+    }
+
+    @Override
+    public void checkCode(String email, String code) {
+        Optional<EmailCode> emailCodeOptional = emailCodeRepository.findById(new EmailCodeId(email, code));
+        EmailCode emailCode = emailCodeOptional.orElseThrow(() -> new BusinessException("邮箱验证码不正确"));
+        if (emailCode.getStatus() == 1 || System.currentTimeMillis() - emailCode.getCreateTime().getTime() > Constants.LENGTH_15 * 1000 * 60) {
+            throw new BusinessException("邮箱验证码已失效");
+        }
+        emailCodeRepository.disableEmailCode(email);
     }
 
     private void sendEmailCode(String toEmail, String code){

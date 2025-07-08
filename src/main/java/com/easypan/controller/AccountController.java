@@ -1,7 +1,10 @@
 package com.easypan.controller;
 
+import com.easypan.annotation.GlobalInterceptor;
+import com.easypan.annotation.VerifyParam;
 import com.easypan.entity.constants.Constants;
 import com.easypan.entity.dto.CreateImageCode;
+import com.easypan.entity.enums.VerifyRegexEnum;
 import com.easypan.entity.vo.ResponseVO;
 import com.easypan.exception.BusinessException;
 import com.easypan.service.EmailCodeService;
@@ -36,10 +39,11 @@ public class AccountController {
     }
 
     @RequestMapping("/sendEmailCode")
+    @GlobalInterceptor(checkParams = true)
     public <T> ResponseVO<T> sendEmailCode(HttpSession session,
-                                           String email,
-                                           String checkCode,
-                                           Integer type) {
+                                           @VerifyParam(required = true, regex = VerifyRegexEnum.EMAIL, max = 15) String email,
+                                           @VerifyParam(required = true) String checkCode,
+                                           @VerifyParam(required = true) Integer type) {
         try {
             if (!checkCode.equalsIgnoreCase((String) session.getAttribute(Constants.CHECK_CODE_KEY_EMAIL))) {
                 throw new BusinessException("图片验证码不正确");
@@ -49,6 +53,25 @@ public class AccountController {
         } finally {
             // 移除验证码
             session.removeAttribute(Constants.CHECK_CODE_KEY_EMAIL);
+        }
+    }
+
+    @RequestMapping("/register")
+    @GlobalInterceptor(checkParams = true)
+    public <T> ResponseVO<T> register(HttpSession session,
+                                      @VerifyParam(required = true, regex = VerifyRegexEnum.EMAIL, max = 15) String email,
+                                      @VerifyParam(required = true) String nickName,
+                                      @VerifyParam(required = true, regex = VerifyRegexEnum.PASSWORD, min = 8, max = 18) String password,
+                                      @VerifyParam(required = true) String checkCode,
+                                      @VerifyParam(required = true) Integer emailCode) {
+        try {
+            if (!checkCode.equalsIgnoreCase((String) session.getAttribute(Constants.CHECK_CODE_KEY))) {
+                throw new BusinessException("图片验证码不正确");
+            }
+            return ResponseVO.ok(null);
+        } finally {
+            // 移除验证码
+            session.removeAttribute(Constants.CHECK_CODE_KEY);
         }
     }
 }
