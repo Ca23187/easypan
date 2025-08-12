@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+// NOTE: 这种配置方式好在灵活便捷，但更加规范的配置方式请参见尚庭公寓项目
 @Getter
 @Configuration
 public class AppConfig {

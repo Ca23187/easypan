@@ -13,26 +13,22 @@ public class StringTools {
 
     public static boolean isEmpty(String str) {
 
-        if (null == str || "".equals(str) || "null".equals(str) || "\u0000".equals(str)) {
+        if (null == str || str.isEmpty() || "null".equals(str) || "\u0000".equals(str)) {
             return true;
-        } else if ("".equals(str.trim())) {
-            return true;
-        }
-        return false;
+        } else return str.trim().isEmpty();
     }
 
     public static String getFileSuffix(String fileName) {
-        Integer index = fileName.lastIndexOf(".");
+        int index = fileName.lastIndexOf(".");
         if (index == -1) {
             return "";
         }
-        String suffix = fileName.substring(index);
-        return suffix;
+        return fileName.substring(index);
     }
 
 
     public static String getFileNameNoSuffix(String fileName) {
-        Integer index = fileName.lastIndexOf(".");
+        int index = fileName.lastIndexOf(".");
         if (index == -1) {
             return fileName;
         }
@@ -78,9 +74,6 @@ public class StringTools {
         if (StringTools.isEmpty(path)) {
             return true;
         }
-        if (path.contains("../") || path.contains("..\\")) {
-            return false;
-        }
-        return true;
+        return !path.contains("../") && !path.contains("..\\");
     }
 }

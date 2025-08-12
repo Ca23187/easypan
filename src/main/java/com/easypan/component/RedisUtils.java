@@ -5,9 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -23,13 +22,9 @@ public class RedisUtils<V> {
      *
      * @param key 可以传一个值 或多个
      */
-    public void delete(String... key) {
-        if (key != null && key.length > 0) {
-            if (key.length == 1) {
-                redisTemplate.delete(key[0]);
-            } else {
-                redisTemplate.delete((Collection<String>) CollectionUtils.arrayToList(key));
-            }
+    public void delete(String... keys) {
+        if (keys != null && keys.length > 0) {
+            redisTemplate.delete(Arrays.asList(keys));
         }
     }
 

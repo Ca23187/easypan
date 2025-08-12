@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 public class RedisComponent {
 
     @Resource
-    private RedisUtils redisUtils;
+    private RedisUtils<SysSettingsDto> redisUtils;
 
     /**
      * 获取系统设置
@@ -17,7 +17,7 @@ public class RedisComponent {
      * @return
      */
     public SysSettingsDto getSysSettingsDto() {
-        SysSettingsDto sysSettingsDto = (SysSettingsDto) redisUtils.get(Constants.REDIS_KEY_SYS_SETTING);
+        SysSettingsDto sysSettingsDto = redisUtils.get(Constants.REDIS_KEY_SYS_SETTING);
         if (sysSettingsDto == null) {
             sysSettingsDto = new SysSettingsDto();
             redisUtils.set(Constants.REDIS_KEY_SYS_SETTING, sysSettingsDto);

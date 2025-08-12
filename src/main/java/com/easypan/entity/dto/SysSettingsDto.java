@@ -8,7 +8,7 @@ import java.io.Serializable;
 
 @Getter
 @Setter
-// 可以忽略类中不存在的字段，确保即使Redis属性与Java对象属性不一致时也不会报错
+// 可以忽略类中不存在的字段，确保即使Redis属性与Java对象属性不一致时也不会报错，但其实不加也行，因为是默认操作
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SysSettingsDto implements Serializable {
     /**

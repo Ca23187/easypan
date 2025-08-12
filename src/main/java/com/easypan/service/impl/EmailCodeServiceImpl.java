@@ -1,11 +1,10 @@
 package com.easypan.service.impl;
 
 import com.easypan.component.RedisComponent;
+import com.easypan.component.RedisUtils;
 import com.easypan.entity.config.AppConfig;
 import com.easypan.entity.constants.Constants;
 import com.easypan.entity.dto.SysSettingsDto;
-import com.easypan.entity.po.EmailCode;
-import com.easypan.entity.po.EmailCodeId;
 import com.easypan.entity.po.UserInfo;
 import com.easypan.exception.BusinessException;
 import com.easypan.repository.EmailCodeRepository;
@@ -24,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 public class EmailCodeServiceImpl implements EmailCodeService {
@@ -46,10 +44,13 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     @Resource
     private RedisComponent redisComponent;
 
+    @Resource
+    private RedisUtils<String> redisUtils;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void sendEmailCode(String email, Integer type) {
-        if (Objects.equals(type, Constants.ZERO)) {
+        if (Objects.equals(type, Constants.ZERO)) {  // 如果是注册所需邮箱验证码
             UserInfo userInfo = userInfoRepository.findByEmail(email);
             if (null != userInfo) {
                 throw new BusinessException("邮箱已经存在");
@@ -58,29 +59,48 @@ public class EmailCodeServiceImpl implements EmailCodeService {
         String code = StringTools.getRandomNumber(Constants.LENGTH_5);
 
         // 发送验证码
-        sendEmailCode(email, code);
+        sendEmailCodeEmail(email, code);
 
-        // 让之前发的所有验证码都无效
-        emailCodeRepository.disableEmailCode(email);
+        // 删除旧验证码（等价于 disableEmailCode）
+        redisUtils.delete(Constants.REDIS_EMAIL_CODE_KEY_PREFIX + email);
 
-        EmailCode emailCode = new EmailCode();
-        emailCode.setId(new EmailCodeId(email, code));
-        emailCode.setStatus(Constants.ZERO);
-        emailCode.setCreateTime(new Date());
-        emailCodeRepository.save(emailCode);
+        // 保存新验证码到 Redis，过期时间 15 分钟
+        redisUtils.setex(Constants.REDIS_EMAIL_CODE_KEY_PREFIX + email, code, Constants.LENGTH_15 * 60);
+
+//        // 让之前发的所有验证码都无效
+//        emailCodeRepository.disableEmailCode(email);
+//
+//        EmailCode emailCode = new EmailCode();
+//        emailCode.setId(new EmailCodeId(email, code));
+//        emailCode.setStatus(Constants.ZERO);
+//        emailCode.setCreateTime(new Date());
+//        emailCodeRepository.save(emailCode);
     }
 
     @Override
     public void checkCode(String email, String code) {
-        Optional<EmailCode> emailCodeOptional = emailCodeRepository.findById(new EmailCodeId(email, code));
-        EmailCode emailCode = emailCodeOptional.orElseThrow(() -> new BusinessException("邮箱验证码不正确"));
-        if (emailCode.getStatus() == 1 || System.currentTimeMillis() - emailCode.getCreateTime().getTime() > Constants.LENGTH_15 * 1000 * 60) {
+        String redisKey = Constants.REDIS_EMAIL_CODE_KEY_PREFIX + email;
+        String realCode = redisUtils.get(redisKey);
+
+        if (realCode == null) {
             throw new BusinessException("邮箱验证码已失效");
         }
-        emailCodeRepository.disableEmailCode(email);
+        else if (!realCode.equals(code)) {
+            throw new BusinessException("邮箱验证码不正确");
+        }
+
+        // 验证通过后删除验证码（一次性使用）
+        redisUtils.delete(redisKey);
+
+//        EmailCode emailCode = emailCodeRepository.findById(new EmailCodeId(email, code))
+//                .orElseThrow(() -> new BusinessException("邮箱验证码不正确"));
+//        if (emailCode.getStatus() == 1 || System.currentTimeMillis() - emailCode.getCreateTime().getTime() > Constants.LENGTH_15 * 1000 * 60) {
+//            throw new BusinessException("邮箱验证码已失效");
+//        }
+//        emailCodeRepository.disableEmailCode(email);
     }
 
-    private void sendEmailCode(String toEmail, String code){
+    private void sendEmailCodeEmail(String toEmail, String code){
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);

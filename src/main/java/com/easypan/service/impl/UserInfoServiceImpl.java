@@ -11,10 +11,12 @@ import com.easypan.service.EmailCodeService;
 import com.easypan.service.UserInfoService;
 import com.easypan.utils.StringTools;
 import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 
+@Service
 public class UserInfoServiceImpl implements UserInfoService {
     @Resource
     private UserInfoRepository userInfoRepository;
@@ -28,13 +30,14 @@ public class UserInfoServiceImpl implements UserInfoService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void register(String email, String nickname, String password, String emailCode) {
-        UserInfo userInfo = userInfoRepository.findByEmail(email);
+        UserInfo userInfo = userInfoRepository.findByEmailOrNickname(email, nickname);
         if (null != userInfo) {
-            throw new BusinessException("邮箱账号已经存在");
-        }
-        UserInfo nickNameUser = userInfoRepository.findByNickname(nickname);
-        if (null != nickNameUser) {
-            throw new BusinessException("昵称已经存在");
+            if (email.equals(userInfo.getEmail())) {
+                throw new BusinessException("邮箱账号已经存在");
+            }
+            else {
+                throw new BusinessException("昵称已经存在");
+            }
         }
         //校验邮箱验证码
         emailCodeService.checkCode(email, emailCode);
