@@ -1,9 +1,9 @@
 package com.easypan.utils;
 
 
-import com.easypan.entity.constants.Constants;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.RandomStringUtils;
+
+import java.util.Random;
 
 public class StringTools {
 
@@ -39,15 +39,27 @@ public class StringTools {
     public static String rename(String fileName) {
         String fileNameReal = getFileNameNoSuffix(fileName);
         String suffix = getFileSuffix(fileName);
-        return fileNameReal + "_" + getRandomString(Constants.LENGTH_5) + suffix;
+        return fileNameReal + "_" + getRandomString(5) + suffix;
     }
 
     public static String getRandomString(Integer count) {
-        return RandomStringUtils.random(count, true, true);
+        String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder builder = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < count; i++) {
+            int index = random.nextInt(chars.length());
+            builder.append(chars.charAt(index));
+        }
+        return builder.toString();
     }
 
     public static String getRandomNumber(Integer count) {
-        return RandomStringUtils.random(count, false, true);
+        StringBuilder builder = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < count; i++) {
+            builder.append(random.nextInt(10));
+        }
+        return builder.toString();
     }
 
 

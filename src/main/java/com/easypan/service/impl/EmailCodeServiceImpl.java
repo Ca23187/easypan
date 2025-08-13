@@ -7,7 +7,6 @@ import com.easypan.entity.constants.Constants;
 import com.easypan.entity.dto.SysSettingsDto;
 import com.easypan.entity.po.UserInfo;
 import com.easypan.exception.BusinessException;
-import com.easypan.repository.EmailCodeRepository;
 import com.easypan.repository.UserInfoRepository;
 import com.easypan.service.EmailCodeService;
 import com.easypan.utils.StringTools;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
-import java.util.Objects;
 
 @Service
 public class EmailCodeServiceImpl implements EmailCodeService {
@@ -31,9 +29,6 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     @Resource
     private UserInfoRepository userInfoRepository;
-
-    @Resource
-    private EmailCodeRepository emailCodeRepository;
 
     @Resource
     private JavaMailSender javaMailSender;
@@ -50,36 +45,32 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void sendEmailCode(String email, Integer type) {
-        if (Objects.equals(type, Constants.ZERO)) {  // 如果是注册所需邮箱验证码
+        if (type != null && type == 0) {  // 如果是注册所需邮箱验证码
             UserInfo userInfo = userInfoRepository.findByEmail(email);
             if (null != userInfo) {
                 throw new BusinessException("邮箱已经存在");
             }
         }
-        String code = StringTools.getRandomNumber(Constants.LENGTH_5);
+        String code = StringTools.getRandomNumber(Constants.EMAIL_CODE_SIZE);
 
         // 发送验证码
         sendEmailCodeEmail(email, code);
 
         // 删除旧验证码（等价于 disableEmailCode）
-        redisUtils.delete(Constants.REDIS_EMAIL_CODE_KEY_PREFIX + email);
+        redisUtils.delete(Constants.REDIS_KEY_EMAIL_CODE_PREFIX + email);
 
         // 保存新验证码到 Redis，过期时间 15 分钟
-        redisUtils.setex(Constants.REDIS_EMAIL_CODE_KEY_PREFIX + email, code, Constants.LENGTH_15 * 60);
-
-//        // 让之前发的所有验证码都无效
-//        emailCodeRepository.disableEmailCode(email);
-//
-//        EmailCode emailCode = new EmailCode();
-//        emailCode.setId(new EmailCodeId(email, code));
-//        emailCode.setStatus(Constants.ZERO);
-//        emailCode.setCreateTime(new Date());
-//        emailCodeRepository.save(emailCode);
+        redisUtils.setex(
+                Constants.REDIS_KEY_EMAIL_CODE_PREFIX + email,
+                code,
+                Constants.REDIS_EXPIRATION_EMAIL_CODE,
+                Constants.REDIS_TIME_UNIT_CHECK_CODE
+        );
     }
 
     @Override
     public void checkCode(String email, String code) {
-        String redisKey = Constants.REDIS_EMAIL_CODE_KEY_PREFIX + email;
+        String redisKey = Constants.REDIS_KEY_EMAIL_CODE_PREFIX + email;
         String realCode = redisUtils.get(redisKey);
 
         if (realCode == null) {
@@ -91,13 +82,6 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
         // 验证通过后删除验证码（一次性使用）
         redisUtils.delete(redisKey);
-
-//        EmailCode emailCode = emailCodeRepository.findById(new EmailCodeId(email, code))
-//                .orElseThrow(() -> new BusinessException("邮箱验证码不正确"));
-//        if (emailCode.getStatus() == 1 || System.currentTimeMillis() - emailCode.getCreateTime().getTime() > Constants.LENGTH_15 * 1000 * 60) {
-//            throw new BusinessException("邮箱验证码已失效");
-//        }
-//        emailCodeRepository.disableEmailCode(email);
     }
 
     private void sendEmailCodeEmail(String toEmail, String code){

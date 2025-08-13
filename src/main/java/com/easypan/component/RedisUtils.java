@@ -12,24 +12,19 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class RedisUtils<V> {
 
-    @Resource
-    private RedisTemplate<String, V> redisTemplate;
-
     private static final Logger logger = LoggerFactory.getLogger(RedisUtils.class);
 
-    /**
-     * 删除缓存
-     *
-     * @param key 可以传一个值 或多个
-     */
+    @Resource
+    private RedisTemplate<String, V> stringObjectRedisTemplate;
+
     public void delete(String... keys) {
         if (keys != null && keys.length > 0) {
-            redisTemplate.delete(Arrays.asList(keys));
+            stringObjectRedisTemplate.delete(Arrays.asList(keys));
         }
     }
 
     public V get(String key) {
-        return key == null ? null : redisTemplate.opsForValue().get(key);
+        return key == null ? null : stringObjectRedisTemplate.opsForValue().get(key);
     }
 
     /**
@@ -41,7 +36,7 @@ public class RedisUtils<V> {
      */
     public boolean set(String key, V value) {
         try {
-            redisTemplate.opsForValue().set(key, value);
+            stringObjectRedisTemplate.opsForValue().set(key, value);
             return true;
         } catch (Exception e) {
             logger.error("设置redisKey:{},value:{}失败", key, value);
@@ -57,10 +52,10 @@ public class RedisUtils<V> {
      * @param time  时间(秒) time要大于0 如果time小于等于0 将设置无限期
      * @return true成功 false 失败
      */
-    public boolean setex(String key, V value, long time) {
+    public boolean setex(String key, V value, long time, TimeUnit timeUnit) {
         try {
             if (time > 0) {
-                redisTemplate.opsForValue().set(key, value, time, TimeUnit.SECONDS);
+                stringObjectRedisTemplate.opsForValue().set(key, value, time, timeUnit);
             } else {
                 set(key, value);
             }
