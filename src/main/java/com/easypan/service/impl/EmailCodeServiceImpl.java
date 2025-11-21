@@ -1,15 +1,15 @@
 package com.easypan.service.impl;
 
-import com.easypan.component.RedisComponent;
-import com.easypan.component.RedisUtils;
-import com.easypan.entity.config.AppConfig;
-import com.easypan.entity.constants.Constants;
-import com.easypan.entity.dto.SysSettingsDto;
-import com.easypan.entity.po.UserInfo;
-import com.easypan.exception.BusinessException;
-import com.easypan.repository.UserInfoRepository;
+import com.easypan.infra.redis.RedisComponent;
+import com.easypan.infra.redis.RedisUtils;
+import com.easypan.config.AppProperties;
+import com.easypan.common.constants.Constants;
+import com.easypan.service.dto.SysSettingsDto;
+import com.easypan.infra.jpa.entity.UserInfo;
+import com.easypan.common.exception.BusinessException;
+import com.easypan.infra.jpa.repository.UserInfoRepository;
 import com.easypan.service.EmailCodeService;
-import com.easypan.utils.StringTools;
+import com.easypan.common.util.StringTools;
 import jakarta.annotation.Resource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -18,8 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
@@ -34,7 +34,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     private JavaMailSender javaMailSender;
 
     @Resource
-    private AppConfig appConfig;
+    private AppProperties appProperties;
 
     @Resource
     private RedisComponent redisComponent;
@@ -43,25 +43,47 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     private RedisUtils<String> redisUtils;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void sendEmailCode(String email, Integer type) {
-        if (type != null && type == 0) {  // 如果是注册所需邮箱验证码
+    public void sendEmail(String email, Integer type) {
+        // 1. 基本校验
+        if (StringTools.isEmpty(email)) {
+            throw new BusinessException("邮箱不能为空");
+        }
+
+        // 2. 注册场景：校验邮箱是否已存在
+        if (type != null && type.equals(Constants.EMAIL_CODE_TYPE_REGISTER)) {
             UserInfo userInfo = userInfoRepository.findByEmail(email);
-            if (null != userInfo) {
+            if (userInfo != null) {
                 throw new BusinessException("邮箱已经存在");
             }
         }
-        String code = StringTools.getRandomNumber(Constants.EMAIL_CODE_SIZE);
 
-        // 发送验证码
-        sendEmailCodeEmail(email, code);
+        // 3. 生成验证码
+        String code = StringTools.getRandomNumber(Constants.EMAIL_CODE_LENGTH);
 
-        // 删除旧验证码（等价于 disableEmailCode）
-        redisUtils.delete(Constants.REDIS_KEY_EMAIL_CODE_PREFIX + email);
+        // 4. 读取系统配置（标题、模板）
+        SysSettingsDto sysSettingsDto = redisComponent.getSysSettingsDto();
+        String subject = sysSettingsDto.getRegisterEmailTitle();
+        String content = String.format(sysSettingsDto.getRegisterEmailContent(), code);
 
-        // 保存新验证码到 Redis，过期时间 15 分钟
+        // 5. 发送邮件
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(appProperties.getMail().getFrom());
+            helper.setTo(email);
+            helper.setSubject(subject);
+            helper.setText(content, false); // 如果你模板是 HTML，可以改为 true
+            helper.setSentDate(new Date());
+            javaMailSender.send(message);
+        } catch (MessagingException e) {
+            logger.error("邮件发送失败，email={}", email, e);
+            throw new BusinessException("邮件发送失败，请稍后再试");
+        }
+
+        // 6. 保存验证码到 Redis
+        String redisKey = Constants.REDIS_KEY_EMAIL_CODE + type + ":" + email;
         redisUtils.setex(
-                Constants.REDIS_KEY_EMAIL_CODE_PREFIX + email,
+                redisKey,
                 code,
                 Constants.REDIS_EXPIRATION_EMAIL_CODE,
                 Constants.REDIS_TIME_UNIT_CHECK_CODE
@@ -69,36 +91,21 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     }
 
     @Override
-    public void checkCode(String email, String code) {
-        String redisKey = Constants.REDIS_KEY_EMAIL_CODE_PREFIX + email;
+    public void checkCode(String redisKey, String checkCode, boolean isCaptcha) {
+        String scene = isCaptcha ? "图片" : "邮箱";
+
+        if (StringTools.isEmpty(checkCode)) {
+            throw new BusinessException(scene + "验证码不能为空");
+        }
+
         String realCode = redisUtils.get(redisKey);
-
         if (realCode == null) {
-            throw new BusinessException("邮箱验证码已失效");
-        }
-        else if (!realCode.equals(code)) {
-            throw new BusinessException("邮箱验证码不正确");
+            throw new BusinessException(scene + "验证码已失效，请重新获取");
         }
 
-        // 验证通过后删除验证码（一次性使用）
-        redisUtils.delete(redisKey);
-    }
-
-    private void sendEmailCodeEmail(String toEmail, String code){
-        try {
-            MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            helper.setFrom(appConfig.getSendUserName());
-            helper.setTo(toEmail);
-
-            SysSettingsDto sysSettingsDto = redisComponent.getSysSettingsDto();
-            helper.setSubject(sysSettingsDto.getRegisterEmailTitle());
-            helper.setText(String.format(sysSettingsDto.getRegisterEmailContent(), code));
-            helper.setSentDate(new Date());
-            javaMailSender.send(message);
-        } catch (MessagingException e) {
-            logger.error("邮件发送失败", e);
-            throw new BusinessException("邮件发送失败");
+        if (!checkCode.trim().equalsIgnoreCase(realCode.trim())) {
+            if (isCaptcha) redisUtils.delete(redisKey);
+            throw new BusinessException(scene + "验证码不正确");
         }
     }
 }

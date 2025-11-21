@@ -29,7 +29,6 @@
 	<properties>
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
 		<logback.version>1.5.18</logback.version>
 		<lombok.version>1.18.38</lombok.version>
 		<mysql.version>9.2.0</mysql.version>
@@ -38,6 +37,7 @@
 		<commons.codec.version>1.18.0</commons.codec.version>
 		<commons.io.version>2.17.0</commons.io.version>
 		<jwt.version>0.11.2</jwt.version>
+		<queryDSL.version>5.1.0</queryDSL.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -157,27 +157,34 @@
 			<scope>runtime</scope>
 			<version>${jwt.version}</version>
 		</dependency>
+
+		<!-- queryDSL -->
+		<dependency>
+			<groupId>com.querydsl</groupId>
+			<artifactId>querydsl-jpa</artifactId>
+			<version>${queryDSL.version}</version>
+			<classifier>jakarta</classifier>
+		</dependency>
+		<dependency>
+			<groupId>com.querydsl</groupId>
+			<artifactId>querydsl-apt</artifactId>
+			<scope>provided</scope> <!-- 避免打包进生产代码 -->
+			<version>${queryDSL.version}</version>
+			<classifier>jakarta</classifier>
+		</dependency>
+
+		<!-- 验证码 -->
+		<dependency>
+			<groupId>com.pig4cloud.plugin</groupId>
+			<artifactId>captcha-spring-boot-starter</artifactId>
+			<version>2.2.5</version>
+		</dependency>
+
+		<!-- 图片格式扩展包（让imageIO识别更多格式图片） -->
+		<dependency>
+			<groupId>org.sejda.imageio</groupId>
+			<artifactId>webp-imageio</artifactId>
+			<version>0.1.6</version>
+		</dependency>
 	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
-					<encoding>${project.build.sourceEncoding}</encoding>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-							<version>${lombok.version}</version>
-						</path>
-					</annotationProcessorPaths>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-
 </project>

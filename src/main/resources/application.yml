@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: easypan
+  devtools:
+    restart:
+      enabled: true
+  servlet:
+    context-path: /api
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+  datasource:
+    url: "jdbc:mysql://127.0.0.1:3306/easypan?serverTimezone=GMT%2B8&useUnicode=true&characterEncoding=utf8&allowMultiQueries=true"
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: HikariCPDatasource
+      minimum-idle: 5
+      idle-timeout: 180000
+      maximum-pool-size: 10
+      auto-commit: true
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: 1781508649@qq.com
+    password: pcddguufekunbafg
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+        debug: true
+  data:
+    redis:
+      database: 0
+      host: 127.0.0.1
+      port: 6379
+      password: "ppnn13%dkstfeb1st"
+      timeout: 2000
+      lettuce:
+        pool:
+          max-active: 20
+          max-wait: -1
+          max-idle: 10
+          min-idle: 0
+
+server:
+  port: 7090
+  servlet:
+    context-path: /api
+
+log:
+  root:
+    level: info
+
+app:
+  project-folder: "d:/easypan/"
+  dev: true
+  admin-emails:
+    - 1781508649@qq.com
+  mail:
+    from: 1781508649@qq.com
+  qq:
+    app-id: 123456
+    app-key: 123456
+    url-authorization: "https://graph.qq.com/oauth2.0/authorize?response_type=code&client_id=%s&redirect_uri=%s&state=%s"
+    url-access-token: "https://graph.qq.com/oauth2.0/token?grant_type=authorization_code&client_id=%s&client_secret=%s&code=%s&redirect_uri=%s"
+    url-openid: "https://graph.qq.com/oauth2.0/me?access_token=%S"
+    url-user-info: "https://graph.qq.com/user/get_user_info?access_token=%s&oauth_consumer_key=%s&openid=%s"
+    url-redirect: "http://easypan.wuhancoder.com/qqlogincalback"
+
+jwt:
+  secret: "FHh6JCXacaapYt4cMTSnJEcnTJX4OHLAfezTgwjBEfE="
+  expire-millis: 3600000
+  issuer: "easypan-service"
+  subject: "USER_INFO"
+  clock-skew-seconds: 60

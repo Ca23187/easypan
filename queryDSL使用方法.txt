@@ -1,0 +1,26 @@
+1. maven配置
+<dependency>
+    <groupId>com.querydsl</groupId>
+    <artifactId>querydsl-jpa</artifactId>
+    <version>${queryDSL.version}</version>
+    <classifier>jakarta</classifier>
+</dependency>
+<dependency>
+    <groupId>com.querydsl</groupId>
+    <artifactId>querydsl-apt</artifactId>
+    <scope>provided</scope> <!-- 避免打包进生产代码 -->
+    <version>${queryDSL.version}</version>
+    <classifier>jakarta</classifier>
+</dependency>
+
+2. IDEA 注解处理器设置
+选“从项目路径获取处理器”
+生产源目录设为 target\generated-sources\java
+
+3. 生成 Q 类必须重启一次项目，mvn clean compile 有点坑不建议使用。
+
+4. 需要到处使用的 entityManager 可以通过一个 QueryDslConfig 来配置为一个 Bean，以便到处注入
+
+5. 如果生成了 Q 类但不识别，多半是 target/generated-sources/ 下的目录名和生产源目录设置不相符，且没有标记为生成的源代码根目录
+
+6. 如果出了各种问题，建议删除 target 目录并重新启动生成。

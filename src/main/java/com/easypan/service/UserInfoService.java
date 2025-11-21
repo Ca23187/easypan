@@ -10,4 +10,6 @@ public interface UserInfoService {
     void updateQqAvatarByUserId(String s, String userId);
 
     void updatePasswordByUserId(String s, String userId);
+
+    String qqLogin(String code);
 }
