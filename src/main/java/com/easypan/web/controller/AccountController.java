@@ -231,7 +231,7 @@ public class AccountController {
 
     @PostMapping("/updateUserAvatar")
     @RequiresLogin
-    public ResponseVo<Map<String, String>> updateUserAvatar(HttpServletResponse response, @RequestParam("avatar") MultipartFile avatar) {
+    public ResponseVo<Map<String, String>> updateUserAvatar(HttpServletResponse response, MultipartFile avatar) {
         LoginUser loginUser = LoginUserHolder.getLoginUser();
         Path avatarRoot = Paths.get(
                 appProperties.getProjectFolder(),
@@ -275,7 +275,7 @@ public class AccountController {
         return ResponseVo.ok(null);
     }
 
-    @GetMapping("qqlogin")
+    @GetMapping("/qqlogin")
     public ResponseVo<String> qqlogin(String callbackUrl) {
         String state = StringTools.getRandomString(Constants.QQ_LOGIN_STATE_LENGTH);
         if (!StringTools.isEmpty(callbackUrl)) {
@@ -285,9 +285,8 @@ public class AccountController {
         return ResponseVo.ok(url);
     }
 
-    @GetMapping("qqlogin/callback")
-    public ResponseVo<Map<String, Object>> qqLoginCallback(@NotBlank String code, @NotBlank String state
-    ) {
+    @GetMapping("/qqlogin/callback")
+    public ResponseVo<Map<String, Object>> qqLoginCallback(@NotBlank String code, @NotBlank String state) {
         String token = userInfoService.qqLogin(code);
         Map<String, Object> result = new HashMap<>();
         result.put("callbackUrl", redisUtils.get(Constants.REDIS_KEY_QQ_LOGIN_STATE + state));

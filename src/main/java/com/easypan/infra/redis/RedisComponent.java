@@ -48,19 +48,6 @@ public class RedisComponent {
         return userSpaceDto;
     }
 
-    /**
-     * 保存已使用的空间
-     *
-     */
-    public void saveUserSpaceInfo(String userId, UserSpaceDto userSpaceDto) {
-        redisUtils.setex(
-                Constants.REDIS_KEY_USER_SPACE_INFO + userId,
-                userSpaceDto,
-                Constants.REDIS_EXPIRATION_USER_SPACE_INFO,
-                Constants.REDIS_TIME_UNIT_USER_SPACE_INFO
-        );
-    }
-
     public Long getTempFileCurrentSize(String userId, String fileId) {
         String key = Constants.REDIS_KEY_USER_TEMP_FILE_CURRENT_SIZE + userId + fileId;
         Object sizeObj = redisUtils.get(key);

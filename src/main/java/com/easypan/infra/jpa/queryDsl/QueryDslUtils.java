@@ -54,8 +54,24 @@ public class QueryDslUtils {
             query.orderBy(orders.toArray(new OrderSpecifier<?>[0]));
         }
 
-        int safeOffset = offset == null ? 0 : Math.max(offset, 0);
-        int safeLimit = limit == null ? Constants.PAGE_SIZE : Math.max(limit, 1);
+        // 不分页，直接返回全部
+        if (offset == null && limit == null) {
+            return query.fetch();
+        }
+
+        // 只有 limit
+        if (offset == null) {
+            int safeLimit = Math.max(limit, 1);
+            return query.limit(safeLimit).fetch();
+        }
+
+        // 只有 offset
+        int safeOffset = Math.max(offset, 0);
+        if (limit == null) {
+            return query.offset(safeOffset).limit(Constants.PAGE_SIZE).fetch();
+        }
+
+        int safeLimit = Math.max(limit, 1);
 
         // 分页
         return query.offset(safeOffset).limit(safeLimit).fetch();

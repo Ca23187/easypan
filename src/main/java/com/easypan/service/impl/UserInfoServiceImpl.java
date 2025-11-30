@@ -93,8 +93,7 @@ public class UserInfoServiceImpl implements UserInfoService {
         if (UserStatusEnum.DISABLE.getStatus().equals(userInfo.getStatus())) {
             throw new BusinessException("账号已禁用");
         }
-        userInfoRepository.updateLastLoginTimeByUserId(LocalDateTime.now(), userInfo.getUserId());
-
+        userInfo.setLastLoginTime(LocalDateTime.now());  // set 后无需手动 save，事务结束后 JPA 会自动提交
         // 生成token
         return buildLoginToken(userInfo, userInfo.getQqAvatar());
     }
@@ -132,12 +131,11 @@ public class UserInfoServiceImpl implements UserInfoService {
         UserInfo user = userInfoRepository.findByQqOpenId(openId);
         String avatar = null;
         if (null == user) {
+            // 第一次用qq登录
             QQInfoDto qqInfo = getQQUserInfo(accessToken, openId);
             String nickname = buildUniqueNickName(qqInfo.getNickname(), openId);
             LocalDateTime now = LocalDateTime.now();
             user = new UserInfo();
-
-            //上传头像到本地
             user.setQqOpenId(openId);
             user.setJoinTime(now);
             user.setNickname(nickname);
@@ -149,7 +147,7 @@ public class UserInfoServiceImpl implements UserInfoService {
             user.setTotalSpace(redisComponent.getSysSettingsDto().getUserInitTotalSpace() * Constants.MB);
             userInfoRepository.save(user);
         } else {
-            userInfoRepository.updateLastLoginTimeByQqOpenId(LocalDateTime.now(), openId);
+            user.setLastLoginTime(LocalDateTime.now());
             avatar = user.getQqAvatar();
         }
         if (UserStatusEnum.DISABLE.getStatus().equals(user.getStatus())) {
@@ -160,8 +158,7 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     private String getQQAccessToken(String code) {
         String accessToken = null;
-        String url = null;
-        url = appProperties.getQq().getUrlAccessToken().formatted(
+        String url = appProperties.getQq().getUrlAccessToken().formatted(
                 appProperties.getQq().getAppId(),
                 appProperties.getQq().getAppKey(),
                 code,

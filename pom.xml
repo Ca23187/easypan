@@ -38,7 +38,11 @@
 		<commons.io.version>2.17.0</commons.io.version>
 		<jwt.version>0.11.2</jwt.version>
 		<queryDSL.version>5.1.0</queryDSL.version>
+		<captcha.version>2.2.5</captcha.version>
+		<webp.version>0.1.6</webp.version>
+		<mapstruct.version>1.5.5.Final</mapstruct.version>
 	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -177,14 +181,27 @@
 		<dependency>
 			<groupId>com.pig4cloud.plugin</groupId>
 			<artifactId>captcha-spring-boot-starter</artifactId>
-			<version>2.2.5</version>
+			<version>${captcha.version}</version>
 		</dependency>
 
 		<!-- 图片格式扩展包（让imageIO识别更多格式图片） -->
 		<dependency>
 			<groupId>org.sejda.imageio</groupId>
 			<artifactId>webp-imageio</artifactId>
-			<version>0.1.6</version>
+			<version>${webp.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct-processor</artifactId>
+			<version>${mapstruct.version}</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 </project>

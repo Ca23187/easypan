@@ -1,15 +1,14 @@
 package com.easypan.service.impl;
 
+import com.easypan.common.constants.Constants;
+import com.easypan.common.exception.BusinessException;
+import com.easypan.common.util.StringTools;
+import com.easypan.config.AppProperties;
+import com.easypan.infra.jpa.repository.UserInfoRepository;
 import com.easypan.infra.redis.RedisComponent;
 import com.easypan.infra.redis.RedisUtils;
-import com.easypan.config.AppProperties;
-import com.easypan.common.constants.Constants;
-import com.easypan.service.dto.SysSettingsDto;
-import com.easypan.infra.jpa.entity.UserInfo;
-import com.easypan.common.exception.BusinessException;
-import com.easypan.infra.jpa.repository.UserInfoRepository;
 import com.easypan.service.EmailCodeService;
-import com.easypan.common.util.StringTools;
+import com.easypan.service.dto.SysSettingsDto;
 import jakarta.annotation.Resource;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -44,15 +43,9 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     @Override
     public void sendEmail(String email, Integer type) {
-        // 1. 基本校验
-        if (StringTools.isEmpty(email)) {
-            throw new BusinessException("邮箱不能为空");
-        }
-
-        // 2. 注册场景：校验邮箱是否已存在
-        if (type != null && type.equals(Constants.EMAIL_CODE_TYPE_REGISTER)) {
-            UserInfo userInfo = userInfoRepository.findByEmail(email);
-            if (userInfo != null) {
+        if (type.equals(Constants.EMAIL_CODE_TYPE_REGISTER)) {
+            boolean exists = userInfoRepository.existsByEmail(email);
+            if (exists) {
                 throw new BusinessException("邮箱已经存在");
             }
         }
@@ -94,16 +87,12 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     public void checkCode(String redisKey, String checkCode, boolean isCaptcha) {
         String scene = isCaptcha ? "图片" : "邮箱";
 
-        if (StringTools.isEmpty(checkCode)) {
-            throw new BusinessException(scene + "验证码不能为空");
-        }
-
         String realCode = redisUtils.get(redisKey);
         if (realCode == null) {
             throw new BusinessException(scene + "验证码已失效，请重新获取");
         }
 
-        if (!checkCode.trim().equalsIgnoreCase(realCode.trim())) {
+        if (!checkCode.trim().equalsIgnoreCase(realCode)) {
             if (isCaptcha) redisUtils.delete(redisKey);
             throw new BusinessException(scene + "验证码不正确");
         }

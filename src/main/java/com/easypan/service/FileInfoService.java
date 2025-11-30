@@ -12,15 +12,24 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface FileInfoService {
-    Long findUsedSpaceByUserId(String userId);
 
     PaginationResultVo<FileInfoVo> findPageByParam(FileInfoQuery query);
 
     UploadResultDto uploadFile(LoginUser loginUser, String fileId, MultipartFile file, String fileName, String filePid, String fileMd5, Integer chunkIndex, Integer chunks);
 
-    List<FileInfo> findByFileId(String realFileId);
+    FileInfo findFirstByFileId(String realFileId);
 
-    int countByFilePathAndUserId(String filePath, String userId);
+    boolean existsByFilePathAndUserId(String filePath, String userId);
 
     FileInfo findById(FileInfoId fileInfoId);
+
+    FileInfoVo createFolder(String filePid, String userId, String folderName);
+
+    List<FileInfoVo> getFolderInfoVoList(String path, String userId);
+
+    FileInfoVo rename(String fileId, String userId, String fileName);
+
+    List<FileInfoVo> findMovableTargetFolders(String userId, String filePid, String currentFileIds);
+
+    void changeFileFolder(String fileIds, String filePid, String userId);
 }

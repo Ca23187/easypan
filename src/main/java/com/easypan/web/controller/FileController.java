@@ -118,16 +118,14 @@ public class FileController {
 
             // 2. 如果查不到，说明是分享场景：用原视频id查原文件，再校验当前用户是否拥有相同路径文件
             if (fileInfo == null) {
-                List<FileInfo> fileInfoList = fileInfoService.findByFileId(realFileId);
-                if (fileInfoList == null || fileInfoList.isEmpty()) {
+                fileInfo  = fileInfoService.findFirstByFileId(realFileId);
+                if (fileInfo == null) {
                     // 没找到原文件
                     return null;
                 }
-                fileInfo = fileInfoList.get(0);
 
                 // 根据当前用户id和路径去查询当前用户是否有该文件，如果没有直接返回
-                int count = fileInfoService.countByFilePathAndUserId(fileInfo.getFilePath(), userId);
-                if (count == 0) {
+                if (!fileInfoService.existsByFilePathAndUserId(fileInfo.getFilePath(), userId)) {
                     // 当前用户没有这个文件的访问权限
                     return null;
                 }
@@ -165,5 +163,37 @@ public class FileController {
                 Constants.FILE_FOLDER_FILE,
                 fileInfo.getFilePath()
         );
+    }
+
+    @PostMapping("/newFolder")
+    public ResponseVo<FileInfoVo> newFolder(@NotBlank String filePid, @RequestParam("fileName") @NotBlank String folderName) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        FileInfoVo fileInfoVo = fileInfoService.createFolder(filePid, loginUser.getUserId(), folderName);
+        return ResponseVo.ok(fileInfoVo);
+    }
+
+    @GetMapping("/getFolderInfo")
+    public ResponseVo<List<FileInfoVo>> getFolderInfo(@NotBlank String path) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        return ResponseVo.ok(fileInfoService.getFolderInfoVoList(path, loginUser.getUserId()));
+    }
+
+    @PostMapping("/rename")
+    public ResponseVo<FileInfoVo> rename(@NotBlank String fileId, @NotBlank String fileName) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        return ResponseVo.ok(fileInfoService.rename(fileId, loginUser.getUserId(), fileName));
+    }
+
+    @GetMapping("/loadAllFolder")
+    public ResponseVo<List<FileInfoVo>> loadAllFolder(@NotBlank String filePid, String currentFileIds) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        return ResponseVo.ok(fileInfoService.findMovableTargetFolders(loginUser.getUserId(), filePid, currentFileIds));
+    }
+
+    @PostMapping("/changeFileFolder")
+    public ResponseVo<Void> changeFileFolder(@NotBlank String fileIds, @NotBlank String filePid) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        fileInfoService.changeFileFolder(fileIds, filePid, loginUser.getUserId());
+        return ResponseVo.ok();
     }
 }
