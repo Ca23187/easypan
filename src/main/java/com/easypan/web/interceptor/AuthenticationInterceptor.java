@@ -1,5 +1,6 @@
 package com.easypan.web.interceptor;
 
+import com.easypan.common.annotation.IgnoreLogin;
 import com.easypan.common.annotation.RequiresAdmin;
 import com.easypan.common.annotation.RequiresLogin;
 import com.easypan.common.constants.Constants;
@@ -38,9 +39,12 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
 
         // 2. 检查方法 / 类上是否有注解
-        boolean requiresLogin =
-                handlerMethod.hasMethodAnnotation(RequiresLogin.class) ||
-                        handlerMethod.getBeanType().isAnnotationPresent(RequiresLogin.class);
+        // 方法上是否显式忽略登录
+        boolean ignoreLogin = handlerMethod.hasMethodAnnotation(IgnoreLogin.class);
+
+        boolean requiresLogin = !ignoreLogin && (
+                        handlerMethod.hasMethodAnnotation(RequiresLogin.class) ||
+                        handlerMethod.getBeanType().isAnnotationPresent(RequiresLogin.class));
 
         boolean requiresAdmin =
                 handlerMethod.hasMethodAnnotation(RequiresAdmin.class) ||

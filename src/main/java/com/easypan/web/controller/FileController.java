@@ -1,5 +1,6 @@
 package com.easypan.web.controller;
 
+import com.easypan.common.annotation.IgnoreLogin;
 import com.easypan.common.annotation.RequiresLogin;
 import com.easypan.common.constants.Constants;
 import com.easypan.common.enums.FileCategoryEnum;
@@ -15,11 +16,13 @@ import com.easypan.infra.jpa.entity.FileInfoId;
 import com.easypan.infra.secure.LoginUser;
 import com.easypan.infra.secure.LoginUserHolder;
 import com.easypan.service.FileInfoService;
+import com.easypan.service.dto.FileResourceDto;
 import com.easypan.service.dto.UploadResultDto;
 import com.easypan.web.dto.query.FileInfoQuery;
 import com.easypan.web.dto.response.FileInfoVo;
 import com.easypan.web.dto.response.PaginationResultVo;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -195,5 +198,18 @@ public class FileController {
         LoginUser loginUser = LoginUserHolder.getLoginUser();
         fileInfoService.changeFileFolder(fileIds, filePid, loginUser.getUserId());
         return ResponseVo.ok();
+    }
+
+    @GetMapping("/createDownloadUrl/{fileId}")
+    public ResponseVo<String> createDownloadUrl(@PathVariable @NotBlank String fileId) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        return ResponseVo.ok(fileInfoService.createDownloadUrl(fileId, loginUser.getUserId()));
+    }
+
+    @GetMapping("/download/{code}")
+    @IgnoreLogin
+    public void download(HttpServletRequest request, HttpServletResponse response, @PathVariable("code") @NotBlank String code) {
+        FileResourceDto resource = fileInfoService.resolveDownload(code);
+        FileTools.writeDownload(request, response, resource.getPath(), resource.getFileName());
     }
 }

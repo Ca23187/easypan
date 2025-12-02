@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
@@ -262,4 +263,36 @@ public final class FileTools {
             throw new RuntimeException("ffmpeg 执行异常", e);
         }
     }
+
+    public static void writeDownload(HttpServletRequest request,
+                                     HttpServletResponse response,
+                                     Path path,
+                                     String fileName) {
+
+        if (!Files.exists(path) || !Files.isRegularFile(path)) {
+            send404(response);
+            return;
+        }
+
+        // 下载场景一般用 octet-stream
+        response.setContentType("application/octet-stream; charset=UTF-8");
+
+        // 处理文件名编码
+        String userAgent = request.getHeader("User-Agent");
+        try {
+            if (userAgent != null && userAgent.toLowerCase().contains("msie")) {
+                fileName = URLEncoder.encode(fileName, "UTF-8");
+            } else {
+                fileName = new String(fileName.getBytes("UTF-8"), "ISO8859-1");
+            }
+        } catch (Exception e) {
+            // 编码异常时兜底用原始文件名
+        }
+
+        response.setHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
+
+        // 真正把文件写出去，可以复用你上面的 readFile，也可以直接复制
+        readFile(response, path);
+    }
+
 }

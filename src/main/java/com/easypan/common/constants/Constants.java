@@ -52,7 +52,12 @@ public final class Constants {
     public static final String IMAGE_PNG_SUFFIX = ".png";
     public static final Integer THUMBNAIL_WIDTH = 150;
 
-    public static final String TS_NAME = "index.ts";
     public static final String M3U8_NAME = "index.m3u8";
     public static final Integer EMAIL_CODE_TYPE_REGISTER = 0;
+
+    public static final Integer DOWNLOAD_CODE_LENGTH = 50;
+    public static final String REDIS_KEY_DOWNLOAD = "easypan:download:";
+
+    public static final TimeUnit REDIS_TIME_UNIT_DOWNLOAD = TimeUnit.MINUTES;
+    public static final Integer REDIS_EXPIRATION_DOWNLOAD = 5;
 }

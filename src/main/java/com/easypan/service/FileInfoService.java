@@ -3,6 +3,7 @@ package com.easypan.service;
 import com.easypan.infra.jpa.entity.FileInfo;
 import com.easypan.infra.jpa.entity.FileInfoId;
 import com.easypan.infra.secure.LoginUser;
+import com.easypan.service.dto.FileResourceDto;
 import com.easypan.service.dto.UploadResultDto;
 import com.easypan.web.dto.query.FileInfoQuery;
 import com.easypan.web.dto.response.FileInfoVo;
@@ -32,4 +33,8 @@ public interface FileInfoService {
     List<FileInfoVo> findMovableTargetFolders(String userId, String filePid, String currentFileIds);
 
     void changeFileFolder(String fileIds, String filePid, String userId);
+
+    String createDownloadUrl(String fileId, String userId);
+
+    FileResourceDto resolveDownload(String code);
 }

@@ -20,6 +20,8 @@ import com.easypan.infra.redis.RedisComponent;
 import com.easypan.infra.redis.RedisUtils;
 import com.easypan.infra.secure.LoginUser;
 import com.easypan.service.FileInfoService;
+import com.easypan.service.dto.DownloadFileDto;
+import com.easypan.service.dto.FileResourceDto;
 import com.easypan.service.dto.UploadResultDto;
 import com.easypan.service.dto.UserSpaceDto;
 import com.easypan.web.dto.query.FileInfoQuery;
@@ -472,4 +474,28 @@ public class FileInfoServiceImpl implements FileInfoService {
             occupiedNames.add(newName);
         }
     }
+
+    @Override
+    public String createDownloadUrl(String fileId, String userId) {
+        FileInfo fileInfo = fileInfoRepository.findById(new FileInfoId(fileId, userId))
+                .filter(info -> !FileFolderTypeEnum.FOLDER.getType().equals(info.getFolderType()))
+                .orElseThrow(() -> new BusinessException(ResponseCodeEnum.BAD_REQUEST));
+        String code = StringTools.getRandomString(Constants.DOWNLOAD_CODE_LENGTH);
+        DownloadFileDto downloadFileDto = new DownloadFileDto();
+        downloadFileDto.setDownloadCode(code);
+        downloadFileDto.setFilePath(fileInfo.getFilePath());
+        downloadFileDto.setFileName(fileInfo.getFileName());
+        redisComponent.saveDownloadCode(code, downloadFileDto);
+        return code;
+    }
+
+    public FileResourceDto resolveDownload(String code) {
+        DownloadFileDto dto = redisComponent.getDownloadFileDto(code);
+        if (dto == null) {
+            throw new BusinessException("下载码无效或已过期");
+        }
+        Path path = Paths.get(appProperties.getProjectFolder(), Constants.FILE_FOLDER_FILE, dto.getFilePath());
+        return new FileResourceDto(path, dto.getFileName());
+    }
+
 }

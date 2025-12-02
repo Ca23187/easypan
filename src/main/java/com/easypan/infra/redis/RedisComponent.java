@@ -4,6 +4,7 @@ import com.easypan.common.constants.Constants;
 import com.easypan.service.dto.SysSettingsDto;
 import com.easypan.service.dto.UserSpaceDto;
 import com.easypan.infra.jpa.repository.FileInfoRepository;
+import com.easypan.service.dto.DownloadFileDto;
 import jakarta.annotation.Resource;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -66,5 +67,18 @@ public class RedisComponent {
             LoggerFactory.getLogger(RedisComponent.class)
                     .warn("更新临时文件大小失败, key={}, delta={}", key, fileSize);
         }
+    }
+
+    public void saveDownloadCode(String code, DownloadFileDto downloadFileDto) {
+        redisUtils.setex(
+                Constants.REDIS_KEY_DOWNLOAD + code,
+                downloadFileDto,
+                Constants.REDIS_EXPIRATION_DOWNLOAD,
+                Constants.REDIS_TIME_UNIT_DOWNLOAD
+        );
+    }
+
+    public DownloadFileDto getDownloadFileDto(String code) {
+        return (DownloadFileDto) redisUtils.get(Constants.REDIS_KEY_DOWNLOAD + code);
     }
 }
