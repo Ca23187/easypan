@@ -212,4 +212,11 @@ public class FileController {
         FileResourceDto resource = fileInfoService.resolveDownload(code);
         FileTools.writeDownload(request, response, resource.getPath(), resource.getFileName());
     }
+
+    @PostMapping("/delFile")
+    public ResponseVo<Void> delFile(@NotBlank String fileIds) {
+        LoginUser loginUser = LoginUserHolder.getLoginUser();
+        fileInfoService.removeFile2RecycleBatch(loginUser.getUserId(), fileIds);
+        return ResponseVo.ok(null);
+    }
 }

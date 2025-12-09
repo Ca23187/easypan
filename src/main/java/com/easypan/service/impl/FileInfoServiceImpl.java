@@ -430,7 +430,9 @@ public class FileInfoServiceImpl implements FileInfoService {
         if (!StringTools.isEmpty(currentFileIds)) {
             fileIds = Arrays.asList(currentFileIds.split(","));  // 待移动的多个文件或目录
         }
-        return fileInfoRepository.findMovableTargetFolders(userId, filePid, FileFolderTypeEnum.FOLDER.getType(), fileIds);
+        return fileInfoRepository.findMovableTargetFolders(
+                userId, filePid, FileFolderTypeEnum.FOLDER.getType(),
+                FileDeleteFlagEnum.USING.getFlag(), fileIds);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -496,6 +498,69 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
         Path path = Paths.get(appProperties.getProjectFolder(), Constants.FILE_FOLDER_FILE, dto.getFilePath());
         return new FileResourceDto(path, dto.getFileName());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeFile2RecycleBatch(String userId, String fileIds) {
+        // 1. 解析选中的 fileId
+        List<String> rootIdList = List.of(fileIds.split(","));
+        if (rootIdList.isEmpty()) {
+            return;
+        }
+
+        // 2. 只考虑当前仍是 USING 的节点，避免重复删除
+        List<FileInfo> roots = fileInfoRepository
+                .findByUserIdAndDelFlagAndFileIdIn(
+                        userId, FileDeleteFlagEnum.USING.getFlag(), rootIdList);
+        if (roots.isEmpty()) {
+            return;
+        }
+
+        // 3. 收集整棵子树上所有节点的 fileId（包含根 + 子目录 + 子文件）
+        Set<String> allIds = new LinkedHashSet<>();
+        for (FileInfo root : roots) {
+            collectSubTreeFileIds(allIds, userId, root, FileDeleteFlagEnum.USING.getFlag());
+        }
+
+        if (allIds.isEmpty()) {
+            return;
+        }
+
+        // 4. 一次性把整棵子树都设置为 RECYCLE + recoveryTime
+        fileInfoRepository.updateDelFlagAndRecoveryTimeByFileIds(
+                FileDeleteFlagEnum.RECYCLE.getFlag(),
+                LocalDateTime.now(),
+                userId,
+                new ArrayList<>(allIds),
+                FileDeleteFlagEnum.USING.getFlag()
+        );
+    }
+
+    /**
+     * 收集以 fileId 为根的整棵子树所有节点的 fileId（包含根节点本身）
+     */
+    private void collectSubTreeFileIds(Set<String> acc,
+                                       String userId,
+                                       FileInfo node,
+                                       Integer delFlag) {
+        // 先把当前节点自己加进去（无论文件还是目录）
+        if (!acc.add(node.getFileId())) {
+            return; // 避免循环引用或重复遍历
+        }
+
+        // 如果是文件，直接作为叶子节点结束，不再往下查
+        if (FileFolderTypeEnum.FILE.getType().equals(node.getFolderType())) {
+            return;
+        }
+
+        // 只有目录才去查子节点（文件 + 目录）
+        List<FileInfo> children = fileInfoRepository
+                .findByUserIdAndFilePidAndDelFlag(userId, node.getFileId(), delFlag);
+
+        for (FileInfo child : children) {
+            collectSubTreeFileIds(acc, userId, child, delFlag);
+        }
     }
 
 }

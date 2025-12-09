@@ -37,4 +37,6 @@ public interface FileInfoService {
     String createDownloadUrl(String fileId, String userId);
 
     FileResourceDto resolveDownload(String code);
+
+    void removeFile2RecycleBatch(String userId, String fileIds);
 }
